@@ -1,6 +1,7 @@
 package com.example.urlshortener.controller;
 
 import com.example.urlshortener.dto.ShortenUrlRequest;
+
 import com.example.urlshortener.dto.ShortenUrlResponse;
 import com.example.urlshortener.model.Url;
 import com.example.urlshortener.service.UrlService;
@@ -16,12 +17,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.urlshortener.model.User;
+import com.example.urlshortener.repository.UrlRepository;
 
 import java.util.Map;
 
 @Controller
 
 public class UrlController {
+
+@Autowired
+private UrlRepository urlRepository;
     
     @Autowired
     private UrlService urlService;
@@ -31,21 +36,21 @@ public class UrlController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/shorten")
     public ModelAndView shortenUrl(@Valid @ModelAttribute ShortenUrlRequest request, @AuthenticationPrincipal User user) {
-        ModelAndView modelAndView = new ModelAndView("index");
-        try {
-            if (user == null) {
-                modelAndView.addObject("error", "User must be authenticated to shorten URLs.");
-            } else {
-                Url url = urlService.shortenUrl(request.getUrl(), user);
-                String shortUrl = url.getShortCode();
-                modelAndView.addObject("shortUrl", shortUrl);
-                modelAndView.addObject("success", true);
-            }
-        } catch (IllegalArgumentException e) {
-            modelAndView.addObject("error", e.getMessage());
+        if (user == null) {
+            ModelAndView modelAndView = new ModelAndView("index");
+            modelAndView.addObject("error", "User must be authenticated to shorten URLs.");
+            modelAndView.addObject("urls", urlRepository.findByUser(user));
+            return modelAndView;
         }
-        modelAndView.addObject("urls", urlService.getAllUrls()); // If you have a method to get all URLs
-        return modelAndView;
+        try {
+            urlService.shortenUrl(request.getUrl(), user);
+            return new ModelAndView("redirect:/dashboard");
+        } catch (IllegalArgumentException e) {
+            ModelAndView modelAndView = new ModelAndView("index");
+            modelAndView.addObject("error", e.getMessage());
+            modelAndView.addObject("urls", urlRepository.findByUser(user));
+            return modelAndView;
+        }
     }
 
     
