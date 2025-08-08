@@ -21,13 +21,18 @@ public class Url {
     
     private Long clickCount = 0L;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    
     // Constructors
     public Url() {}
-    
-    public Url(String originalUrl, String shortCode) {
+
+    public Url(String originalUrl, String shortCode, User user) {
         this.originalUrl = originalUrl;
         this.shortCode = shortCode;
         this.createdAt = LocalDateTime.now();
+        this.user = user;
     }
     
     // Getters and Setters
@@ -45,4 +50,7 @@ public class Url {
     
     public Long getClickCount() { return clickCount; }
     public void setClickCount(Long clickCount) { this.clickCount = clickCount; }
+    
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }

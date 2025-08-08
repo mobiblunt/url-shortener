@@ -13,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.stereotype.Controller;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.example.urlshortener.model.User;
 
 import java.util.Map;
 
@@ -25,14 +28,19 @@ public class UrlController {
     
     
     
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/shorten")
-    public ModelAndView shortenUrl(@Valid @ModelAttribute ShortenUrlRequest request) {
+    public ModelAndView shortenUrl(@Valid @ModelAttribute ShortenUrlRequest request, @AuthenticationPrincipal User user) {
         ModelAndView modelAndView = new ModelAndView("index");
         try {
-            Url url = urlService.shortenUrl(request.getUrl());
-            String shortUrl = url.getShortCode();
-            modelAndView.addObject("shortUrl", shortUrl);
-            modelAndView.addObject("success", true);
+            if (user == null) {
+                modelAndView.addObject("error", "User must be authenticated to shorten URLs.");
+            } else {
+                Url url = urlService.shortenUrl(request.getUrl(), user);
+                String shortUrl = url.getShortCode();
+                modelAndView.addObject("shortUrl", shortUrl);
+                modelAndView.addObject("success", true);
+            }
         } catch (IllegalArgumentException e) {
             modelAndView.addObject("error", e.getMessage());
         }
@@ -40,23 +48,7 @@ public class UrlController {
         return modelAndView;
     }
 
-    @PostMapping(value = "/api/shorten", produces = "application/json")
-    public ResponseEntity<ShortenUrlResponse> shortenUrl(@Valid @RequestBody ShortenUrlRequest request, 
-                                       HttpServletRequest httpRequest) {
-        try {
-            Url url = urlService.shortenUrl(request.getUrl());
-            String baseUrl = getBaseUrl(httpRequest);
-            String shortUrl = baseUrl + "/" + url.getShortCode();
-            ShortenUrlResponse response = new ShortenUrlResponse(
-                url.getOriginalUrl(), 
-                shortUrl, 
-                url.getShortCode()
-            );
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(null);
-        }
-    }
+    
     
     @GetMapping("/{shortCode}")
     public ResponseEntity<?> redirectToOriginalUrl(@PathVariable String shortCode) {
@@ -70,16 +62,5 @@ public class UrlController {
         }
     }
     
-    private String getBaseUrl(HttpServletRequest request) {
-        String scheme = request.getScheme();
-        String serverName = request.getServerName();
-        int serverPort = request.getServerPort();
-        StringBuilder baseUrl = new StringBuilder();
-        baseUrl.append(scheme).append("://").append(serverName);
-        if ((scheme.equals("http") && serverPort != 80) || (scheme.equals("https") && serverPort != 443)) {
-            baseUrl.append(":" + serverPort);
-        }
-        baseUrl.append(""); // Remove "/api" from the base URL so the short URL is correct
-        return baseUrl.toString();
-    }
+    
 }

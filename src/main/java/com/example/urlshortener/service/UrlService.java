@@ -1,6 +1,7 @@
 package com.example.urlshortener.service;
 
 import com.example.urlshortener.model.Url;
+import com.example.urlshortener.model.User;
 import com.example.urlshortener.repository.UrlRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,14 +20,13 @@ public class UrlService {
     private static final String CHARSET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int SHORT_CODE_LENGTH = 6;
     
-    public Url shortenUrl(String originalUrl) {
+    public Url shortenUrl(String originalUrl, User user) {
         // Validate URL
         if (!isValidUrl(originalUrl)) {
             throw new IllegalArgumentException("Invalid URL");
         }
-        
         String shortCode = generateUniqueShortCode();
-        Url url = new Url(originalUrl, shortCode);
+        Url url = new Url(originalUrl, shortCode, user);
         return urlRepository.save(url);
     }
     

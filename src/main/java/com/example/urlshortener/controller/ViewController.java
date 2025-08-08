@@ -8,6 +8,8 @@ import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @Controller
 public class ViewController {
@@ -18,9 +20,10 @@ public class ViewController {
         this.urlRepository = urlRepository;
     }
 
-    @GetMapping("/")
-    public ModelAndView index() {
-        List   <Url> urls = urlRepository.findAll();
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/dashboard")
+    public ModelAndView index(@AuthenticationPrincipal com.example.urlshortener.model.User user) {
+        List<Url> urls = urlRepository.findByUser(user);
         ModelAndView modelAndView = new ModelAndView("index");
         modelAndView.addObject("urls", urls);
         return modelAndView;
